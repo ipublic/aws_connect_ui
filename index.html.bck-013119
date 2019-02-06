@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <title>UITS Amazon Connect Custom CCP</title>
+  </head>
+  <body>
+    DC UITS Amazon Connect Custom CCP
+    <div id="LinkToCallersRecord">...</div>
+    <div id="containerDiv" style="width: 320px; min-width: 200px; height: 465px; min-height: 400px; "></div>
+    <script src="amazon-connect-streams/amazon-connect-v1.2.0-26-g978b2a4.js"></script>
+    <!--<script src="libphonenumber/javascript/i18n/phonenumbers/demo-compiled.js"></script>-->
+    <script src="helpers/getParams.js"></script>
+    <script>
+      connect.core.initCCP(containerDiv, {
+        ccpUrl: 'https://dc-pfl.awsapps.com/connect/ccp',
+        loginPopup: true,
+        softphone: {
+          allowFramedSoftphone: true
+          }
+      });
+      //this figures out the contact that is calling in and displays a link to their sugar crm profile
+      connect.contact(function(contact){
+        var callerAttribs = contact.getAttributes();
+
+        document.getElementById("LinkToCallersRecord").innerHTML = "You are talking to <b>" + callerAttribs.contactName.value + "</b><br /><a href='" + callerAttribs.contactLink.value + "' target='_blank'>Contact Info</a><br /><a href='" + callerAttribs.callLink.value + "' target='_blank'>Call Info</a>";
+        console.log('call link:',callerAttribs.callLink.value);
+      });
+
+
+      var outboundNumber = false;
+      if (findGetParameter('workphone')) {
+        var outboundNumber = "+1" + findGetParameter('workphone');
+      }else if (findGetParameter('mobilephone')) {
+        var outboundNumber = "+1" + findGetParameter('mobilephone');
+      }
+      //handles outbound call linking
+      if (outboundNumber){
+        console.log('calling phone ...',outboundNumber);
+        connect.agent(function(agent){
+          var endpoint = connect.Endpoint.byPhoneNumber(outboundNumber);
+          agent.onError(function(err){
+            console.log('agent error',err);
+          });
+          agent.connect(endpoint, {
+            //Outbound Queue
+            //queueArn: 'arn:aws:connect:us-east-1:445285005458:instance/35979e47-3db7-497e-8e1d-52673ca12235/queue/b30f4aae-98cb-458b-9476-49d62ab5b61c',
+            //BasicQueue
+            queueArn: 'arn:aws:connect:us-east-1:445285005458:instance/35979e47-3db7-497e-8e1d-52673ca12235/queue/5cb3d0f1-9cfa-4da6-9a67-e4d2e1ec42c9',
+            success: function(){
+              console.log('GOOD');
+            },
+            failure: function(){
+              console.log('BAD');
+            }
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
+
